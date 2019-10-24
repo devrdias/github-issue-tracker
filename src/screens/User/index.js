@@ -28,16 +28,17 @@ export default function User({ navigation }) {
   const [endOfList, setEndOfList] = useState(false);
 
   useEffect(() => {
-    const userParam = navigation.getParam('user');
-    setUser(userParam);
     loadData();
   }, []);
 
   const loadData = async () => {
     try {
       if (!endOfList) {
-        const { login } = navigation.getParam('user');
-        const response = await api.get(`/users/${login}/starred?page=${page}`);
+        const userParam = navigation.state.params.user;
+        setUser(userParam);
+        const response = await api.get(
+          `/users/${userParam.login}/starred?page=${page}`,
+        );
         if (response.data && response.data.length > 0) {
           setStars(
             page === 1 ? [...response.data] : [...stars, ...response.data],
@@ -77,7 +78,7 @@ export default function User({ navigation }) {
       }}
       onEndReachedThreshold={0.5}
       onEndReached={handleLoadMore}
-      initialNumToRender={5}
+      initialNumToRender={6}
       refreshing={refreshing}
       onRefresh={handleOnRefresh}
       ListFooterComponent={renderFooter}
@@ -99,7 +100,7 @@ export default function User({ navigation }) {
   };
 
   const renderFooter = () => {
-    if (!loading) {
+    if (!loading || endOfList) {
       return null;
     }
 
@@ -135,6 +136,11 @@ User.navigationOptions = ({ navigation }) => ({
 
 User.propTypes = {
   navigation: PropTypes.shape({
+    state: {
+      params: {
+        user: PropTypes.obj,
+      },
+    },
     getParam: PropTypes.func,
     navigate: PropTypes.func,
   }).isRequired,

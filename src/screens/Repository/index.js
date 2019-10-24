@@ -1,23 +1,38 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { WebView } from 'react-native-webview';
-import { Container } from './styles';
+import { Container, Loading, LoadingContainer } from './styles';
 
-export default function User({ repository }) {
+export default function Repository({ navigation }) {
+  const { repository } = navigation.state.params;
+
+  const renderLoading = () => (
+    <LoadingContainer>
+      <Loading />
+    </LoadingContainer>
+  );
   return (
     <Container>
       <WebView
         source={{ uri: repository.html_url }}
-        style={{ flex: 1, marginTop: 20 }}
+        style={{ flex: 1 }}
+        renderLoading={renderLoading}
+        startInLoadingState
       />
     </Container>
   );
 }
 
-User.navigationOptions = ({ navigation }) => ({
+Repository.navigationOptions = ({ navigation }) => ({
   title: navigation.getParam('repository').name,
 });
 
-User.propTypes = {
-  repository: PropTypes.string.isRequired,
+Repository.propTypes = {
+  navigation: PropTypes.shape({
+    state: PropTypes.shape({
+      params: {
+        html_url: PropTypes.string,
+      },
+    }),
+  }).isRequired,
 };
