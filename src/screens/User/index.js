@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { ActivityIndicator, View } from 'react-native';
 import api from '../../services/api';
 import {
   Container,
@@ -14,14 +13,19 @@ import {
   Info,
   Title,
   Author,
+  Error,
+  LoadingContainer,
+  Loading,
 } from './styles';
 
 export default function User({ navigation }) {
   const [stars, setStars] = useState([]);
   const [page, setPage] = useState(1);
-  const [endList, setEndList] = useState(false);
   const [user, setUser] = useState({});
+  const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [endOfList, setEndOfList] = useState(false);
 
   useEffect(() => {
     const userParam = navigation.getParam('user');
@@ -30,47 +34,87 @@ export default function User({ navigation }) {
   }, []);
 
   const loadData = async () => {
-    if (endList) {
-      console.tron.log('fim da lista', response.data.length);
-      return;
-    }
-    console.tron.log('page', page);
-    setLoading(true);
-    const userParam = navigation.getParam('user');
-    const response = await api.get(
-      `/users/${userParam.login}/starred?page=${page}`,
-    );
+    try {
+      if (!endOfList) {
+        const { login } = navigation.getParam('user');
+        const response = await api.get(`/users/${login}/starred?page=${page}`);
+        if (response.data && response.data.length > 0) {
+          setStars(
+            page === 1 ? [...response.data] : [...stars, ...response.data],
+          );
+        } else {
+          setEndOfList(true);
+        }
 
-    console.tron.log('TCL: loadData -> response.data', response.data.length);
-    if (response.data) {
-      setStars([...stars, ...response.data]);
-      setPage(page + 1);
-      if (response.data.length < 30) {
-        setEndList(true);
+        setLoading(false);
       }
+    } catch (e) {
+      const { response } = e;
+      let message;
+      if (response.data) {
+        message = response.data.message;
+      } else {
+        message = e.message;
+      }
+      setError(message);
     }
-    setLoading(false);
+  };
+
+  const renderStarredList = () => (
+    <List
+      data={stars}
+      keyExtractor={star => String(star.id)}
+      renderItem={({ item }) => {
+        return (
+          <Starred onPress={() => renderRepository(item)}>
+            <OwnerAvatar source={{ uri: item.owner.avatar_url }} />
+            <Info>
+              <Title>{item.name}</Title>
+              <Author>{item.owner.login}</Author>
+            </Info>
+          </Starred>
+        );
+      }}
+      onEndReachedThreshold={0.5}
+      onEndReached={handleLoadMore}
+      initialNumToRender={5}
+      refreshing={refreshing}
+      onRefresh={handleOnRefresh}
+      ListFooterComponent={renderFooter}
+    />
+  );
+
+  const handleLoadMore = () => {
+    setLoading(true);
+    setPage(page + 1);
+    loadData();
+  };
+
+  const handleOnRefresh = () => {
+    setRefreshing(true);
+    setPage(1);
+    loadData();
+    setRefreshing(false);
+    setEndOfList(false);
   };
 
   const renderFooter = () => {
-    if (!endList) return null;
+    if (!loading) {
+      return null;
+    }
 
     return (
-      <View
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: '100%',
-          paddingVertical: 20,
-          borderTopWidth: 1,
-          marginTop: 10,
-          marginBottom: 10,
-          borderColor: '#fff',
-        }}>
-        <ActivityIndicator animating size="large" />
-      </View>
+      <LoadingContainer>
+        <Loading />
+      </LoadingContainer>
     );
   };
+
+  const renderRepository = item => {
+    navigation.navigate('Repository', { repository: item });
+  };
+
+  const renderError = () => <Error>{error}</Error>;
 
   return (
     <Container>
@@ -79,36 +123,8 @@ export default function User({ navigation }) {
         <Name>{user.name}</Name>
         <Bio>{user.bio}</Bio>
       </Header>
-      {loading ? (
-        <ActivityIndicator color="#222" size="large" />
-      ) : (
-        <List
-          data={stars}
-          keyExtractor={star => String(star.id)}
-          renderItem={({ item }) => {
-            return (
-              <Starred>
-                <OwnerAvatar source={{ uri: item.owner.avatar_url }} />
-                <Info>
-                  <Title>{item.name}</Title>
-                  <Author>{item.owner.login}</Author>
-                </Info>
-              </Starred>
-            );
-          }}
-          onEndReachedThreshold={0.01}
-          onEndReached={loadData}
-          initialNumToRender={5}
-          maxToRenderPerBatch={2}
-          refreshing={loading}
-          onRefresh={() => {
-            setPage(1);
-            setEndList(false);
-            loadData();
-          }}
-          ListFooterComponent={renderFooter}
-        />
-      )}
+
+      {error ? renderError() : renderStarredList()}
     </Container>
   );
 }
@@ -120,5 +136,6 @@ User.navigationOptions = ({ navigation }) => ({
 User.propTypes = {
   navigation: PropTypes.shape({
     getParam: PropTypes.func,
+    navigate: PropTypes.func,
   }).isRequired,
 };

@@ -42,7 +42,7 @@ export const List = styled.FlatList.attrs({
   margin-top: 20px;
 `;
 
-export const Starred = styled.View`
+export const Starred = styled.TouchableOpacity`
   background: #f5f5f5;
   border-radius: 4px;
   padding: 10px 15px;
@@ -76,3 +76,25 @@ export const Author = styled.Text`
   margin-top: 2px;
   color: #666;
 `;
+
+export const Error = styled.Text`
+  font-size: 14px;
+  margin-top: 10px;
+  color: red;
+  text-align: center;
+`;
+
+export const LoadingContainer = styled.View`
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0 20px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  border-color: #eee;
+`;
+
+export const Loading = styled.ActivityIndicator.attrs({
+  animating: true,
+  size: 'large',
+})``;
