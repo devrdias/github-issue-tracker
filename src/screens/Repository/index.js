@@ -1,15 +1,9 @@
 import PropTypes from 'prop-types';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { WebView } from 'react-native-webview';
 import { Container } from './styles';
 
 export default function User({ repository }) {
-  useEffect(() => {
-    // const userParam = navigation.getParam('user');
-    // setUser(userParam);
-    // loadData();
-  }, []);
-
   return (
     <Container>
       <WebView
